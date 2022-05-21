@@ -19,29 +19,32 @@ import configparser
 petname = '麦'
 petscale = 0.25
 bottomfix = 0.0
-dragspeedx = 0.2
-dragspeedy = 0.3
+dragspeedx = 0
+dragspeedy = 0
 throwout = False
 intotray = True
-dropspeed = 5
-gravity = 8
+dropspeed = 0
+gravity = 10
+t = 4
 gamespeed = 400.0
 petactions = ['stand','walkleft','walkright','drag','falling']
-petspeed = 6.0
+#petspeed = 6.0
+petspeed = 20
 petactionnum = [1,4,4,1,1]
 petactionrate = [0.8,0.2,0.2]
-#petactionrate = [0.1,0.45,0.45]
+#petactionrate = [0, 1, 0]
 dragingfixx = 0.0
 dragingfixy = 1000.0
 standaction = ['kiss','lay','sit']
 standactionnum = [2,4,4]
-standactionrate = [0.32,0.32,0.36]
+standactionrate = [0.36,0.32,0.32]
 mirror = False
 
 #动作
 action = 0 #0:随机， 1：左右走，爬框框（移动）； 2：站立； 3：坐下； 4：亲亲； 5：趴趴； 
 stopdrop = 0 #1：禁用掉落，移动不会掉回桌面。 0：开启掉落
 onfloor = 1
+onwall = 0
 drop=1
 dragging=0
 playid=1 #图片编号，例如sit2.png中的2
@@ -87,8 +90,14 @@ class Label(QLabel):
         menu.addAction(QAction(QIcon('compress_img/walkright1.png'), '始终移动', self, triggered=self.wander))
         menu.addAction(QAction(QIcon('compress_img/stand1.png'), '站立不动', self, triggered=self.stand))
         menu.addAction(QAction(QIcon('img/gift.png'), '随机', self, triggered=self.randommove))
+        
+        menu.addSeparator()
+        
         menu.addAction(QAction(QIcon('img/parachute.png'), '开启掉落', self, triggered=self.parachute))
         menu.addAction(QAction(QIcon('img/non_parachute.png'), '禁用掉落', self, triggered=self.non_parachute))
+        
+        menu.addSeparator()
+        
         menu.addAction(QAction(QIcon('img/hide.png'), '隐藏', self, triggered=self.hide))
         menu.addAction(QAction(QIcon('img/exit.png'), '退出', self, triggered=self.quit))
         menu.exec_(QCursor.pos())
@@ -146,6 +155,8 @@ class App(QWidget):
     def __init__(self):
         super(App, self).__init__()
         screen = QDesktopWidget().screenGeometry()
+        self.tray()
+        
         
         self.pet = Pet()
         self.is_follow_mouse = False
@@ -167,7 +178,6 @@ class App(QWidget):
         petleft = screenwidth-petwidth
         pettop = screenheight-petheight
         
-        self.tray()
         
         #初始图像
         pix = QPixmap(self.pet.image)
@@ -198,13 +208,17 @@ class App(QWidget):
         #self.pet.gif()
         
         global petaction, petaction2, playstand, playnum, imgpath, playtime, playstand, playid
+        global onfloor, drop, onwall
         global petwidth,petleft,pettop
+        
         if drop==1 and onfloor==0: 
+            playnum = 1
             if dragging==1:#实现拖拽
                 imgpath='17.png'
                 playid=1
             
             elif dragging==0 and stopdrop == 0:#实现掉落
+                
                 imgpath='18.png'
                 playid=1
     
@@ -212,88 +226,202 @@ class App(QWidget):
             
             
             
+            
         #1：左右走，爬框框（移动）；    
-        elif action == 1 and (drop==0 or onfloor==1):
+        elif action == 1:
             
             if playtime==0: #换动作
                 petaction = random.random()
                 playstand = -1
                 playid = 1 
                 
-            #向右走    
-            if petaction >= 0.5 and (petleft+petwidth+petspeed)<screenwidth :
-                playnum = 4
-                if playid < playnum:
-                    imgpath=petactions[2]+str(playid)+'.png'
-                    playid=playid+1
-                    
-                else:
-                    imgpath=petactions[2]+str(playid)+'.png'
-                    playid=1
-                    
-                petleft = petleft + petspeed
-
                 
-                self.lb_pet.move(int(petleft),int(pettop))
+            #右    
+            #if petaction >= (float(petactionrate[0])+float(petactionrate[1])) and (petleft+petwidth+petspeed)<screenwidth:
+            if petaction >= 0.5:
+                #向右走
+                if petleft < (screenwidth - 0.73 * petwidth) and petleft >= -0.27 * petwidth and pettop >= (screenheight-petheight):
+                    playnum = 4
+                    if playid < playnum:
+                        imgpath=petactions[2]+str(playid)+'.png'
+                        playid=playid+1
+                    
+                    else:
+                        imgpath=petactions[2]+str(playid)+'.png'
+                        playid=1
+                    
+                    petleft = petleft + petspeed                
+                    self.lb_pet.move(int(petleft),int(pettop))
+                 
+                
+                 #爬上右墙
+                elif petleft >= (screenwidth - 0.73 * petwidth) and (pettop - petspeed) >= 0 and stopdrop == 0:
+                    #onwall = 1
+                    
+                    playnum = 2
+                    
+                    if playid < playnum:
+                        imgpath='rightclimb'+str(playid)+'.png'
+                        playid=playid+1
+                    
+                    else:
+                        imgpath='rightclimb'+str(playid)+'.png'
+                        playid=1
+                    
+                    petleft = screenwidth - 0.73 * petwidth
+                    pettop = pettop - petspeed
+                    self.lb_pet.move(int(petleft),int(pettop))
+                    
+                #从右往左爬天花板
+                elif (pettop - petspeed) < 0 and petleft > 0 and stopdrop == 0:
+                   # onwall = 1
+                    playnum = 2
+                        
+                    if playid < playnum:
+                        imgpath='lefttop'+str(playid)+'.png'
+                        playid=playid+1
+                    
+                    else:
+                        imgpath='lefttop'+str(playid)+'.png'
+                        playid=1
+                        
+                    petleft = petleft - petspeed  
+                    pettop = -0.27 * petheight
+                    self.lb_pet.move(int(petleft),int(pettop))    
+                    
+                    #爬下左墙
+                elif petleft <= 0 and stopdrop == 0:
+                    #onwall = 1
+                    playnum = 2
+                    
+                    if playid < playnum:
+                        imgpath='leftclimb'+str(playid)+'.png'
+                        playid=playid+1
+                    
+                    else:
+                        imgpath='leftclimb'+str(playid)+'.png'
+                        playid=1
+                    
+                    petleft = -0.25 * petwidth
+                    pettop = pettop + petspeed
+                    if pettop <petheight:
+                        pettop = petheight
+                        petleft = petleft + 1
+                    
+                    self.lb_pet.move(int(petleft),int(pettop))
+                    
+        
                 
                 if playtime == 0:
-                    playtimemin = 3 
-                    playtimemax = int((((screenwidth-(petleft+petwidth)))/petspeed)/playnum)
+
+                    playtimemin = 10
+                    playtimemax = 50
+                
                     if playtimemax<=3:
                         playtimemax=3
                 playtime = int(playtime)-1 
                 
-            #向左走
-            elif petaction < 0.5 and petaction>=float(petactionrate[0]) and petleft>petspeed: 
-                playnum = 4
-                if playid<int(petactionnum[1]):
-                    imgpath=petactions[1]+str(playid)+'.png'
-                    playid=playid+1
-                    
-                else:
-                    imgpath=petactions[1]+str(playid)+'.png'
-                    playid=1
-                    
-                petleft = petleft - petspeed
-                self.lb_pet.move(int(petleft),int(pettop))
+            #左
+            elif petaction < 0.5:
                 
+                #向左走
+                if petleft >= -0.27 * petwidth and pettop >= (screenheight-petheight):
+                    playnum = 4
+                    if playid < playnum:
+                        imgpath=petactions[1]+str(playid)+'.png'
+                        playid=playid+1
+                    
+                    else:
+                        imgpath=petactions[1]+str(playid)+'.png'
+                        playid=1
+                    
+                    petleft = petleft - petspeed
+                    pettop = screenheight-petheight
+                    
+                    self.lb_pet.move(int(petleft),int(pettop))
+                    
+                elif petleft <= (-0.27 * petwidth) and (pettop - petspeed) >= 0 and stopdrop == 0:
+                    #爬上左墙
+                    playnum = 2
+                    
+                    if playid < playnum:
+                        imgpath='leftclimb'+str(playid)+'.png'
+                        playid=playid+1
+                    
+                    else:
+                        imgpath='leftclimb'+str(playid)+'.png'
+                        playid=1
+                    
+                    petleft = -0.27 * petwidth
+                    pettop = pettop - petspeed
+                    self.lb_pet.move(int(petleft),int(pettop))
+                    
+                    #从左往右爬天花板
+                elif (pettop - petspeed) < 0 and petleft < (screenwidth - 0.73 * petwidth) and stopdrop == 0:
+                    playnum = 2
+                            
+                    if playid < playnum:
+                        imgpath='righttop'+str(playid)+'.png'
+                        playid=playid+1
+                        
+                    else:
+                        imgpath='righttop'+str(playid)+'.png'
+                        playid=1
+                            
+                    petleft = petleft + petspeed  
+                    pettop = -0.27 * petheight
+                    self.lb_pet.move(int(petleft),int(pettop))
+                        
+                    #爬下右墙
+                elif petleft >= (screenwidth - 0.73 * petwidth) and stopdrop == 0:
+                        playnum = 2
+                        
+                        if playid < playnum:
+                            imgpath='rightclimb'+str(playid)+'.png'
+                            playid=playid+1
+                        
+                        else:
+                            imgpath='rightclimb'+str(playid)+'.png'
+                            playid=1
+                        
+                        petleft = screenwidth - 0.73 * petwidth
+                        pettop = pettop + petspeed
+                        
+                        self.lb_pet.move(int(petleft),int(pettop))
+               
                 if playtime==0:
-                    playtimemin=3
-                    playtimemax=int((petleft)/petspeed/playnum)
-                    if playtimemax<=1:
-                        playtimemax=1
+                    playtimemin=10
+                    playtimemax=50
+                    if playtimemax<=3:
+                        playtimemax=3
                 playtime=int(playtime)-1
-                
-                if playtime==-1:
-                    playtime=random.randint(1,playtimemax)*playnum
-
-        #2：站立；     
-        elif action == 2 and (drop==0 or onfloor==1):
-            playnum=3
-            playstand=2
             
-            if playstand < 4: 
-                #imgpath=standaction[i]+str(playid)+'.png'
-                imgpath='stand'+ str(playstand) +'.png'
-                playstand = playstand + 1
             else:
-                imgpath='stand' + str(playstand) + '.png'
-                playstand = 1
-                playid = 1
+                petaction=random.random()
+                playstand=-1
             
-            if playtime==0:
-                playtime = 10
-                playtimemax=20
-                
-            playtime=int(playtime)-1 
+            if playtime==-1:
+                playtime=random.randint(1,playtimemax)*playnum
+
+
+        #2：站立； 眼睛看鼠标；    
+        elif action == 2:
+            #获取鼠标位置
+            mouseX = QCursor.pos().x() 
+            mouseY = QCursor.pos().y()
             
-        
-                
+            
+            if mouseX < (petleft - 200) or (mouseY >= pettop and mouseX < petleft + 100):
+                imgpath = 'stand3.png'
+            elif mouseX > (petleft + petwidth + 200) or (mouseY >= pettop and mouseX > petleft - 100):
+                imgpath = 'stand1.png'
+            else:
+                imgpath = 'stand2.png'
+            
 
         # 3：坐下；     
         elif action == 3:
              playnum=3
-             playstand=1
              
              if playstand < 4: 
                  #imgpath=standaction[i]+str(playid)+'.png'
@@ -314,9 +442,8 @@ class App(QWidget):
         #4：亲亲；      
         elif action == 4:
             playnum=2
-            playstand=1
             
-            if playstand < 3: 
+            if playstand < 2: 
                 imgpath='kiss'+ str(playstand) +'.png'
                 playstand = playstand + 1
             else:
@@ -333,7 +460,6 @@ class App(QWidget):
         #5：趴趴；    
         elif action == 5:
              playnum=4
-             playstand=1
              
              if playstand < 4: 
                  imgpath='lay'+ str(playstand) +'.png'
@@ -359,48 +485,164 @@ class App(QWidget):
                 playid = 1 
                 
                 
-            #向右走    
-            if petaction >= (float(petactionrate[0])+float(petactionrate[1])) and (petleft+petwidth+petspeed)<screenwidth:
-                playnum = 4
-                if playid < playnum:
-                    imgpath=petactions[2]+str(playid)+'.png'
-                    playid=playid+1
+            #右    
+            #if petaction >= (float(petactionrate[0])+float(petactionrate[1])) and (petleft+petwidth+petspeed)<screenwidth:
+            if petaction >= (float(petactionrate[0])+float(petactionrate[1])):
+                #向右走
+                if petleft < (screenwidth - 0.73 * petwidth) and petleft >= -0.27 * petwidth and pettop >= (screenheight-petheight):
+                    playnum = 4
+                    if playid < playnum:
+                        imgpath=petactions[2]+str(playid)+'.png'
+                        playid=playid+1
                     
-                else:
-                    imgpath=petactions[2]+str(playid)+'.png'
-                    playid=1
+                    else:
+                        imgpath=petactions[2]+str(playid)+'.png'
+                        playid=1
                     
-                petleft = petleft + petspeed
-
+                    petleft = petleft + petspeed                
+                    self.lb_pet.move(int(petleft),int(pettop))
+                 
                 
-                self.lb_pet.move(int(petleft),int(pettop))
+                 #爬上右墙
+                elif petleft >= (screenwidth - 0.73 * petwidth) and (pettop - petspeed) >= 0 and stopdrop == 0:
+                    #onwall = 1
+                    
+                    playnum = 2
+                    
+                    if playid < playnum:
+                        imgpath='rightclimb'+str(playid)+'.png'
+                        playid=playid+1
+                    
+                    else:
+                        imgpath='rightclimb'+str(playid)+'.png'
+                        playid=1
+                    
+                    petleft = screenwidth - 0.73 * petwidth
+                    pettop = pettop - petspeed
+                    self.lb_pet.move(int(petleft),int(pettop))
+                    
+                #从右往左爬天花板
+                elif (pettop - petspeed) < 0 and petleft > 0 and stopdrop == 0:
+                   # onwall = 1
+                    playnum = 2
+                        
+                    if playid < playnum:
+                        imgpath='lefttop'+str(playid)+'.png'
+                        playid=playid+1
+                    
+                    else:
+                        imgpath='lefttop'+str(playid)+'.png'
+                        playid=1
+                        
+                    petleft = petleft - petspeed  
+                    pettop = -0.27 * petheight
+                    self.lb_pet.move(int(petleft),int(pettop))    
+                    
+                    #爬下左墙
+                elif petleft <= 0 and stopdrop == 0:
+                    #onwall = 1
+                    playnum = 2
+                    
+                    if playid < playnum:
+                        imgpath='leftclimb'+str(playid)+'.png'
+                        playid=playid+1
+                    
+                    else:
+                        imgpath='leftclimb'+str(playid)+'.png'
+                        playid=1
+                    
+                    petleft = -0.25 * petwidth
+                    pettop = pettop + petspeed
+                    if pettop <petheight:
+                        pettop = petheight
+                        petleft = petleft + 1
+                    
+                    self.lb_pet.move(int(petleft),int(pettop))
+                    
+        
                 
                 if playtime == 0:
-                    playtimemin = 3 
-                    playtimemax = int((((screenwidth-(petleft+petwidth)))/petspeed)/playnum)
+
+                    playtimemin = 10
+                    playtimemax = 50
+                
                     if playtimemax<=3:
                         playtimemax=3
                 playtime = int(playtime)-1 
                 
-            #向左走
-            elif petaction<(float(petactionrate[0])+float(petactionrate[1])) and petaction>=float(petactionrate[0]) and petleft>petspeed: 
-                playnum = 4
-                if playid<int(petactionnum[1]):
-                    imgpath=petactions[1]+str(playid)+'.png'
-                    playid=playid+1
-                    
-                else:
-                    imgpath=petactions[1]+str(playid)+'.png'
-                    playid=1
-                    
-                petleft = petleft - petspeed
-                self.lb_pet.move(int(petleft),int(pettop))
+            #左
+            elif petaction<(float(petactionrate[0])+float(petactionrate[1])) and petaction>=float(petactionrate[0]):
                 
+                #向左走
+                if petleft >= -0.27 * petwidth and pettop >= (screenheight-petheight):
+                    playnum = 4
+                    if playid < playnum:
+                        imgpath=petactions[1]+str(playid)+'.png'
+                        playid=playid+1
+                    
+                    else:
+                        imgpath=petactions[1]+str(playid)+'.png'
+                        playid=1
+                    
+                    petleft = petleft - petspeed
+                    pettop = screenheight-petheight
+                    
+                    self.lb_pet.move(int(petleft),int(pettop))
+                    
+                elif petleft <= (-0.27 * petwidth) and (pettop - petspeed) >= 0 and stopdrop == 0:
+                    #爬上左墙
+                    playnum = 2
+                    
+                    if playid < playnum:
+                        imgpath='leftclimb'+str(playid)+'.png'
+                        playid=playid+1
+                    
+                    else:
+                        imgpath='leftclimb'+str(playid)+'.png'
+                        playid=1
+                    
+                    petleft = -0.27 * petwidth
+                    pettop = pettop - petspeed
+                    self.lb_pet.move(int(petleft),int(pettop))
+                    
+                    #从左往右爬天花板
+                elif (pettop - petspeed) < 0 and petleft < (screenwidth - 0.73 * petwidth) and stopdrop == 0:
+                    playnum = 2
+                            
+                    if playid < playnum:
+                        imgpath='righttop'+str(playid)+'.png'
+                        playid=playid+1
+                        
+                    else:
+                        imgpath='righttop'+str(playid)+'.png'
+                        playid=1
+                            
+                    petleft = petleft + petspeed  
+                    pettop = -0.27 * petheight
+                    self.lb_pet.move(int(petleft),int(pettop))
+                        
+                    #爬下右墙
+                elif petleft >= (screenwidth - 0.73 * petwidth) and stopdrop == 0:
+                        playnum = 2
+                        
+                        if playid < playnum:
+                            imgpath='rightclimb'+str(playid)+'.png'
+                            playid=playid+1
+                        
+                        else:
+                            imgpath='rightclimb'+str(playid)+'.png'
+                            playid=1
+                        
+                        petleft = screenwidth - 0.73 * petwidth
+                        pettop = pettop + petspeed
+                        
+                        self.lb_pet.move(int(petleft),int(pettop))
+               
                 if playtime==0:
-                    playtimemin=3
-                    playtimemax=int((petleft)/petspeed/playnum)
-                    if playtimemax<=1:
-                        playtimemax=1
+                    playtimemin=10
+                    playtimemax=50
+                    if playtimemax<=3:
+                        playtimemax=3
                 playtime=int(playtime)-1
                 
              #原地动作   
@@ -408,26 +650,23 @@ class App(QWidget):
                 
                 if playstand==-1:
                     temp=random.random()
-                    temp2=0
+                    temp2=0 # 自定义动作的概率（1）
 
                     for i in range(len(standactionrate)):
-                        
-                        if float(standactionrate[i])==0:
-                            continue
                         temp2=temp2+float(standactionrate[i])
                         
-                        if temp<temp2:
+                        if temp<temp2: #自定义动作
                             petaction2=i
                             playnum=int(standactionnum[i])
                             playstand=1
                             break
                             
                     
-                    if playstand==-1:
+                    if playstand==-1: #站立
                         playnum=int(standactionnum[0])
                         playstand=1
                 
-                if playstand<int(standactionnum[petaction2]):
+                if playstand < playnum:
                     #imgpath=standaction[i]+str(playid)+'.png'
                     imgpath=standaction[petaction2]+str(playstand)+'.png'
                     playstand=playstand+1
@@ -441,13 +680,11 @@ class App(QWidget):
                     playtimemax=20
                     
                 playtime=int(playtime)-1
-                ##print("Stand:"+str(petaction)+".Playid:"+str(playid)+"."+str(petaction2)+".Playstand:"+str(playstand)+".Playtime:"+str(playtime)+"Playnum:"+str(playnum))
                 
             
-                
-            else:
-                petaction=random.random()
-                playstand=-1
+            else:#好像没啥用？先留着（。
+                petaction = random.random()
+                playstand = -1
             
             if playtime==-1:
                 playtime=random.randint(1,playtimemax)*playnum
@@ -495,6 +732,9 @@ class App(QWidget):
                 playid = 1
             event.accept()
             self.setCursor(QCursor(Qt.OpenHandCursor))
+        if event.button() == Qt.RightButton:
+            dragging = 0
+            
 
     def mouseMoveEvent(self, event):
         global mouseposx1,mouseposx2,mouseposx3,mouseposx4,mouseposx5
@@ -517,6 +757,9 @@ class App(QWidget):
                 mouseposy3=mouseposy2
                 mouseposy2=mouseposy1
                 mouseposy1=QCursor.pos().y()
+                
+        if Qt.LeftButton and self.is_follow_mouse:
+            pass
             
             
             
@@ -524,33 +767,68 @@ class App(QWidget):
     def mouseReleaseEvent(self, event):
         global onfloor,dragging, playid, stopdrop
         global dragspeedx,dragspeedy,mouseposx1,mouseposx3,mouseposy1,mouseposy3
-        if stopdrop == 0:
-            playid = 1 
+        if stopdrop == 0: #允许降落
+            playid = 1 #播放降落图片 8.png
             onfloor = 0 
             dragging = 0 
         else:
             onfloor = 1 
             dragging = 0 
+            
         
         self.is_follow_mouse = False
         self.setCursor(QCursor(Qt.ArrowCursor))
         
         if stopdrop == 0:
-            dragspeedx=(mouseposx1-mouseposx3)/2*dragspeedx*0.1
-            dragspeedy=(mouseposy1-mouseposy3)/2*dragspeedy*0.1
+            dragspeedx = (mouseposx1-mouseposx3)/t
+            #dragspeedy = (mouseposy1-mouseposy3)/t
+            dragspeedy = 0
             mouseposx1=mouseposx3=0
             mouseposy1=mouseposy3=0
             
+            
+    def drop(self):
+        global petleft,pettop
+        global onfloor, dragging, dragspeedy
+        if onfloor==0 and dragging==0:
+            #算新坐标
+            dropnext = pettop + dragspeedy * t + 0.5 * gravity * t**2 #y位移
+            movenext = petleft + dragspeedx * t #x位移
+
+            if movenext > screenwidth-petwidth:
+                movenext = (screenwidth-petwidth)
+            
+            elif movenext <= 0:
+                movenext = 0
+            
+            
+            if dropnext >= (screenheight-petheight):
+                dropnext = screenheight-petheight
+                onfloor=1
+                onwall = 0
+                
+            elif dropnext <= 0: #飞出上框
+                dropnext = 0 
+                dragspeedy = 0
+            
+            petleft = movenext
+            pettop = dropnext
+            self.lb_pet.move(int(petleft),int(pettop))
+
+            
 
     def tray(self):
+        
         tray = QSystemTrayIcon(self)
-        tray.setIcon(QIcon('img/icon.png'))
-
+        tray.setIcon(QIcon('img/4.png'))
+        
+        quit = QAction(QIcon('img/exit.png'), '退出', self, triggered=self.quit)        
         display = QAction(QIcon('img/eye.png'), '显示', self, triggered=self.display)
-        quit = QAction(QIcon('img/exit.png'), '退出', self, triggered=self.quit)
-        menu = QMenu(self)
-        menu.addAction(quit)
-        menu.addAction(display)
+        
+        menu = QMenu(self) 
+        menu.addAction(display) 
+        menu.addSeparator()
+        menu.addAction(quit)       
         tray.setContextMenu(menu)
         tray.show()
 
@@ -563,29 +841,6 @@ class App(QWidget):
 
     def display(self):
         self.lb_pet.setVisible(True)
-        
-    def drop(self):
-        global petleft,pettop
-        global onfloor, dragging, dragspeedy
-        if onfloor==0 and dragging==0:
-            dropnext = pettop + dragspeedy + dropspeed
-            movenext = petleft + dragspeedx
-           
-            if movenext>screenwidth-petwidth:
-                movenext=(screenwidth-petwidth)
-            
-            dragspeedy=dragspeedy+gravity
-            
-            if dropnext>=(screenheight-petheight):
-                pettop=screenheight-petheight
-                petleft=movenext
-                self.lb_pet.move(int(petleft),int(pettop))
-                onfloor=1
-                
-            elif dropnext<(screenheight-petheight):
-                pettop=dropnext
-                petleft=movenext
-                self.lb_pet.move(int(petleft),int(pettop))
                 
                 
             
