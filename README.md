@@ -1,11 +1,15 @@
 # Desktop Pet Mai
 
 
-> This project is a small gift for my boyfriend. 
-> The pet is implemented using python and PYQT5. Download the zip file, decompression the file in your device and then double click the Pet.exe: a lovely desktop pet will come out :)
-> I will keep optimising it and add functions.
+This project is a small gift for my boyfriend. 
 
-### Functions
+
+The pet is implemented using python and PYQT5. Download the zip file, decompression the file in your device and then double click the Pet.exe: a lovely desktop pet will come out :)
+
+
+I will keep optimising it and add functions.
+
+### Features
 
 - Walk around and climb the frame of screen.
 - Drag and drop down.
