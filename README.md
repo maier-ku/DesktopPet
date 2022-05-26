@@ -32,6 +32,7 @@ I will keep optimising it and add functions.
 | ------ | ------ |
 | 21/05/2022 | 1. 实现爬墙功能; 2.下落时加入抛物线； 3.实现站立时眼睛跟随鼠标功能； 
 | 22/05/2022 | 1. 更改随机逻辑; 2.碰到边缘自动继续攀爬；
+| 26/05/2022 | 1. 计时器ui; 2.页面跳转；3.基本计时器功能；
 
 #### Reference
 - https://github.com/WolfChen1996/DesktopPet.git
