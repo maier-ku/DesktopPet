@@ -15,6 +15,9 @@ import sys
 import os
 import configparser
 
+from PetClass import Pet
+from Timer import setTime, Timer
+
 #交互，位置
 petname = '麦'
 petscale = 0.25
@@ -61,18 +64,6 @@ petheight=im.size[1]
 mouseposx1,mouseposx2,mouseposx3,mouseposx4,mouseposx5=0,0,0,0,0
 mouseposy1,mouseposy2,mouseposy3,mouseposy4,mouseposy5=0,0,0,0,0
 
-
-
-class Pet(object):
-    def __init__(self, width=1400, height=800):
-        self.image_url = 'compress_img/'
-        self.image_id = 2
-        self.image_action = 'sit'
-        self.image = self.image_url + self.image_action + str(self.image_id) + '.png'
-        self.rect_x = width
-        self.rect_y = height
-
-
 class Label(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -99,32 +90,41 @@ class Label(QLabel):
         
         menu.addSeparator()
         
+        menu.addAction(QAction(QIcon('img/clock.png'), '计时器', self, triggered=self.timer))
+        
+        menu.addSeparator()
+        
         menu.addAction(QAction(QIcon('img/hide.png'), '隐藏', self, triggered=self.hide))
         menu.addAction(QAction(QIcon('img/exit.png'), '退出', self, triggered=self.quit))
         menu.exec_(QCursor.pos())
     
     def lay(self):
-        global action,randommove
+        global action,randommove, stopdrop
+        stopdrop = 1
         randommove = 0
         action = 5
         
     def kiss(self):
-        global action, randommove
+        global action, randommove, stopdrop
+        stopdrop = 1
         randommove = 0
         action = 4
     
     def sit(self):
-        global action, randommove
+        global action, randommove, stopdrop
+        stopdrop = 1
         randommove = 0
         action = 3
     
     def stand(self):
-        global action, randommove
+        global action, randommove, stopdrop
+        stopdrop = 1
         randommove = 0
         action = 2
         
     def wander(self):
-        global action, randommove
+        global action, randommove, stopdrop
+        stopdrop = 1
         randommove = 0
         action = 1
         
@@ -140,6 +140,10 @@ class Label(QLabel):
     def non_parachute(self):
         global stopdrop
         stopdrop = 1
+        
+    def timer(self):
+        settime.show()
+        
 
     def quit(self):
         self.close()
@@ -156,6 +160,8 @@ class Label(QLabel):
         except:
             print('路径不正确')
             
+
+
 
 
 class App(QWidget):
@@ -196,14 +202,6 @@ class App(QWidget):
         self.lb_pet.move(self.pet.rect_x, self.pet.rect_y)
         
         
-        
-        
-        #self.lb_pet.setPixmap(pix)
-        #self.lb_pet.setContextMenuPolicy(Qt.CustomContextMenu)
-        #self.lb_pet.customContextMenuRequested.connect(self.rightMenu)
-        #self.show()
-        
-        #self.init_ui()
         
         self.show()
         timer = QTimer(self)
@@ -588,7 +586,7 @@ class App(QWidget):
         
         if stopdrop == 0:
             dragspeedx = (mouseposx1-mouseposx3)/t
-            dragspeedy = (mouseposy1-mouseposy3)/t
+            dragspeedy = 2*(mouseposy1-mouseposy3)/t
             #dragspeedy = 0
             mouseposx1=mouseposx3=0
             mouseposy1=mouseposy3=0
@@ -645,8 +643,16 @@ class App(QWidget):
         display = QAction(QIcon('img/eye.png'), '显示', self, triggered=self.display)
         
         menu = QMenu(self) 
-        menu.addAction(display) 
+        
+        menu.addAction(QAction(QIcon('img/clock.png'), '计时器', self, triggered=self.timer))
+        menu.addAction(QAction(QIcon('img/clock.png'), '显示计时器', self, triggered=self.showtimer))
+        menu.addAction(QAction(QIcon('img/hide.png'), '隐藏计时器',self, triggered=self.hidetimer))
         menu.addSeparator()
+        
+        menu.addAction(display) 
+        
+        menu.addSeparator()
+        
         menu.addAction(quit)       
         tray.setContextMenu(menu)
         tray.show()
@@ -660,6 +666,16 @@ class App(QWidget):
 
     def display(self):
         self.lb_pet.setVisible(True)
+        
+        
+    def timer(self):
+        settime.show()
+        
+    def showtimer(self):
+        settime.timer.show()
+
+    def hidetimer(self):
+        settime.timer.setVisible(False)
                 
                 
             
@@ -668,4 +684,8 @@ class App(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     pet = App()
+    settime = setTime()
+    
+    
+    
     sys.exit(app.exec_())
